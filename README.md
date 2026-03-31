@@ -12,4 +12,4 @@ This project implements a lightweight AI agent capable of:
 - Generating grounded answers with LLMs
 - Providing fast and modular query pipelines
 
-Unlike complex agent frameworks, this project focuses on simplicity, control, and extensibility.
+Unlike complex agent frameworks, this project focuses on **simplicity**, **control**, and **extensibility**.

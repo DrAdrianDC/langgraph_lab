@@ -15,6 +15,8 @@ This project implements a lightweight AI agent capable of:
 Unlike complex agent frameworks, this project focuses on **simplicity**, **control**, and **extensibility**.
 
 ## Project Structure
+
+```
 AI-Web-Research-Agent/
 │
 ├── app.py                # Streamlit frontend
@@ -23,3 +25,5 @@ AI-Web-Research-Agent/
 ├── .env.example         # Example environment variables
 ├── .gitignore
 └── README.md
+```
+

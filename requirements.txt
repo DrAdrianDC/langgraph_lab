@@ -1,0 +1,4 @@
+pydantic-ai
+pydantic-ai-slim[tavily]
+streamlit
+python-dotenv

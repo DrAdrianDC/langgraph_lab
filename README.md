@@ -11,6 +11,7 @@ This project implements a lightweight AI agent capable of:
 - Structuring responses using **Pydantic**
 - Generating grounded answers with LLMs
 - Providing fast and modular query pipelines
+- Context-aware conversations: Maintain research continuity across multiple interactions.
 
 Unlike complex agent frameworks, this project focuses on **simplicity**, **control**, and **extensibility**.
 

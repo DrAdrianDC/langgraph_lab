@@ -1,30 +1,6 @@
-# AI Web Research Agent
+# LangGraph Lab 
 
-An AI agent that searches the web, analyzes information, and returns structured, reliable answers using LLMs.
+A collection of autonomous agents and agentic workflows built with LangGraph, focusing on state management, tool usage, and structured reasoning.
 
-
-## Overview
-
-This project implements a lightweight AI agent capable of:
-
-- Searching the web in real-time using **Tavily**
-- Structuring responses using **Pydantic**
-- Generating grounded answers with LLMs
-- Providing fast and modular query pipelines
-- Context-aware conversations: Maintain research continuity across multiple interactions.
-
-Unlike complex agent frameworks, this project focuses on **simplicity**, **control**, and **extensibility**.
-
-## Project Structure
-
-```
-AI-Web-Research-Agent/
-│
-├── app.py                # Streamlit frontend
-├── agent_utils.py       # Agent logic and tool handling
-├── requirements.txt
-├── .env.example         # Example environment variables
-├── .gitignore
-└── README.md
-```
+This repository serves as a modular playground for production-grade AI architectures, from real-time research agents to complex multi-step reasoning systems.
 

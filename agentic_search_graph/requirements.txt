@@ -1,0 +1,7 @@
+streamlit==1.56.0
+langgraph==1.1.6
+langchain==1.2.15
+langchain-core==1.2.26
+langchain-groq==1.1.2
+langchain-tavily==0.2.17
+python-dotenv==1.2.2

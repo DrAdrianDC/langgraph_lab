@@ -1,0 +1,14 @@
+{
+  "dependencies": [
+    "langgraph",
+    "langchain",
+    "langchain-core",
+    "langchain-groq",
+    "langchain-tavily",
+    "python-dotenv"
+  ],
+  "graphs": {
+    "my_graph": "./src/langgraph_agent.py:agent"
+  },
+  "env": ".env"
+}

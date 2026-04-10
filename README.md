@@ -18,3 +18,7 @@ Each project lives in its own folder with independent dependencies, tests, and d
 langgraph_lab/
 └── agentic_search_graph/   # ReAct agent with web search
 ```
+
+
+## License
+MIT License — see [LICENSE](./LICENSE) for details.

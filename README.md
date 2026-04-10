@@ -13,3 +13,6 @@ This repository serves as a modular playground for production-grade AI architect
 ## Structure
 
 Each project lives in its own folder with independent dependencies, tests, and documentation.
+
+langgraph_lab/
+└── agentic_search_graph/   # ReAct agent with web search

@@ -2,7 +2,7 @@
 
 A high-performance ReAct agent powered by Llama 3.3 70B on Groq for low-latency inference, with persistent web search via Tavily and state orchestration through LangGraph. It includes an optimized chat UI with source traceability.
 
-## Visual overview
+## Graph Architecture
 
 ![Agent Graph](docs/graph.png)
 

@@ -11,7 +11,9 @@ This project implements a ReAct-style conversational agent with:
 
 ## Graph topology
 
-The compiled graph (`agent`) is defined in `src/langgraph_agent.py` with two operational nodes:
+The graph is defined in `src/langgraph_agent.py`. The module exports `workflow` (the `StateGraph`) and `agent` (`workflow.compile()` without a checkpointer). Runtimes that need persistence compile their own instance with `MemorySaver` — see Memory model below.
+
+Two operational nodes:
 
 - `llm`: runs `call_model`.
 - `tools`: runs `call_tool`.
@@ -81,13 +83,21 @@ Safety behavior:
 - If the tool name does not match `tavily_search`, it returns `Unknown tool`.
 - If invocation fails (network/API), it returns `SEARCH_TOOL_FAILURE_MESSAGE` so the LLM can provide an explanatory fallback.
 
+## Memory model
+
+Persistence is handled at the caller level, not in the module-level `agent`:
+
+- **Streamlit** (`app.py`): on first load, `workflow.compile(checkpointer=MemorySaver())` is called and stored in `st.session_state["agent"]`. Each turn sends only the new user message; the checkpointer accumulates history. `trim_messages` in `call_model` keeps the window sent to the LLM bounded.
+- **CLI**: `__main__` compiles its own `MemorySaver`-backed agent; history persists across the `while` loop.
+- **LangGraph dev / Studio**: reads the module-level `agent` (no checkpointer); the platform injects its own persistence layer.
+
 ## Streamlit integration details
 
 In `app.py`:
 
-- `st.session_state.messages` is maintained.
-- History is transformed into LangGraph input format.
-- `agent.invoke(...)` is executed.
+- `st.session_state.messages` drives UI rendering only.
+- `st.session_state.agent` holds the `MemorySaver`-backed compiled graph.
+- Each turn calls `agent.invoke({"messages": [("user", prompt)]}, config=config)`.
 - The final answer is extracted with `_last_message_to_text(...)`.
 
 Sources:

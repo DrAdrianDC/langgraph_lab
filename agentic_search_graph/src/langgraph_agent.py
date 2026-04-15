@@ -392,22 +392,36 @@ workflow.add_conditional_edges(
 
 workflow.add_edge("tools", "llm")
 
-# A checkpointer (e.g. MemorySaver) persists state per thread; it does not trim context.
-# Context trimming happens in call_model via trim_messages.
+# agent is compiled WITHOUT a checkpointer so it can be used by langgraph dev /
+# LangGraph Platform (which injects its own persistence layer) as well as by
+# code that needs a plain compiled graph.  Code that runs outside the platform
+# (CLI, Streamlit) should compile workflow with its own MemorySaver — see below.
 agent = workflow.compile()
 
 # ==========================================
 # 6. CLI
 # ==========================================
 if __name__ == "__main__":
+    from langgraph.checkpoint.memory import MemorySaver
+
+    # Compile a CLI-only agent with an in-process checkpointer.
+    # This is intentionally separate from the module-level `agent` so that
+    # langgraph dev (which manages its own persistence) can import this file
+    # without triggering the "custom checkpointer" rejection.
+    _cli_agent = workflow.compile(checkpointer=MemorySaver())
+
     print("ReAct agent (Groq - Llama 3.3 + Tavily) ready.")
+
+    # thread_id ties all turns of this CLI session to the same checkpointer slot,
+    # so the agent accumulates history across the while-loop iterations.
+    config = {"configurable": {"thread_id": "1"}}
 
     while True:
         user_input = input("\nAsk something: ")
         if user_input.lower() in ["quit", "exit"]:
             break
 
-        response = agent.invoke({"messages": [("user", user_input)]})
+        response = _cli_agent.invoke({"messages": [("user", user_input)]}, config=config)
 
         print(f"\nFinal answer: {response['messages'][-1].content}")
         print("-" * 50)

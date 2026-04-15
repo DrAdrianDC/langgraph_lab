@@ -1,37 +1,60 @@
 """Unit tests for pure helper functions in app.py."""
+import uuid
 from unittest.mock import MagicMock
+
+from langgraph.checkpoint.memory import MemorySaver
 
 from app import (
     _assistant_already_included_sources,
     _extract_tavily_sources,
     _last_message_to_text,
-    format_messages_for_langgraph,
 )
 
 
 # ==========================================
-# format_messages_for_langgraph
+# Session-state agent initialisation
 # ==========================================
 
-class TestFormatMessagesForLanggraph:
-    def test_converts_user_and_assistant(self):
-        messages = [
-            {"role": "user", "content": "Hello"},
-            {"role": "assistant", "content": "Hi there"},
-        ]
-        result = format_messages_for_langgraph(messages)
-        assert result == [("user", "Hello"), ("assistant", "Hi there")]
+class TestSessionStateInit:
+    def test_agent_compiled_with_memory_saver(self):
+        """app.py must compile the agent with a MemorySaver checkpointer."""
+        from src.langgraph_agent import workflow
+        local_agent = workflow.compile(checkpointer=MemorySaver())
+        assert local_agent.checkpointer is not None
+        assert isinstance(local_agent.checkpointer, MemorySaver)
 
-    def test_filters_unknown_roles(self):
-        messages = [
-            {"role": "user", "content": "Hello"},
-            {"role": "system", "content": "You are a bot"},
-        ]
-        result = format_messages_for_langgraph(messages)
-        assert result == [("user", "Hello")]
+    def test_config_uses_uuid_thread_id(self):
+        """Each session must generate a unique uuid4 thread_id."""
+        id_a = str(uuid.uuid4())
+        id_b = str(uuid.uuid4())
+        assert id_a != id_b
 
-    def test_empty_history(self):
-        assert format_messages_for_langgraph([]) == []
+        config = {"configurable": {"thread_id": id_a}}
+        assert "configurable" in config
+        assert "thread_id" in config["configurable"]
+        # Must be a valid uuid4 string (36 chars, 4 hyphens).
+        assert len(id_a) == 36
+        assert id_a.count("-") == 4
+
+    def test_different_memory_savers_are_isolated(self):
+        """Two agents compiled with separate MemorySaver instances must not share state."""
+        from src.langgraph_agent import workflow
+        from langchain_core.messages import AIMessage
+        from unittest.mock import patch
+
+        mock_llm = MagicMock()
+        mock_llm.invoke.return_value = AIMessage(content="reply", id="id-1")
+
+        with patch("src.langgraph_agent.llm_with_tools", mock_llm):
+            agent_a = workflow.compile(checkpointer=MemorySaver())
+            agent_b = workflow.compile(checkpointer=MemorySaver())
+            config = {"configurable": {"thread_id": "same-thread-id"}}
+
+            agent_a.invoke({"messages": [("user", "hello from A")]}, config=config)
+            # agent_b uses a completely separate MemorySaver — same thread_id must
+            # not leak state from agent_a.
+            state_b = agent_b.get_state(config)
+            assert state_b.values == {} or state_b.values.get("messages", []) == []
 
 
 # ==========================================

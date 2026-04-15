@@ -1,25 +1,15 @@
 import json
 import re
+import uuid
 
 import streamlit as st
 from langchain_core.messages import ToolMessage
 
-from src.langgraph_agent import agent
+from langgraph.checkpoint.memory import MemorySaver
+
+from src.langgraph_agent import workflow
 
 TAVILY_TOOL_NAME = "tavily_search"
-
-
-# ==========================================
-# HELPERS
-# ==========================================
-
-def format_messages_for_langgraph(messages: list[dict]) -> list[tuple[str, str]]:
-    """Convert Streamlit session messages to LangGraph (role, content) tuples."""
-    return [
-        (msg["role"], msg["content"])
-        for msg in messages
-        if msg["role"] in ("user", "assistant")
-    ]
 
 
 def _extract_tavily_sources(messages: list) -> list[tuple[str, str]]:
@@ -104,11 +94,45 @@ st.markdown("Agent powered by LangGraph + Groq + Tavily")
 # 1. SESSION STATE
 # ==========================================
 
+# Compile the agent with its own MemorySaver here, not at module level, so that
+# the module-level `workflow` export stays checkpointer-free (required by langgraph dev).
+# Wrapping in session_state ensures the same MemorySaver instance (and its
+# in-memory checkpoints) survives Streamlit reruns within the same browser session.
+if "agent" not in st.session_state:
+    st.session_state.agent = workflow.compile(checkpointer=MemorySaver())
+
+# A uuid4 thread_id scopes each browser session to its own isolated checkpoint
+# slot.  This is correct for multi-user deploys: two tabs or two users will never
+# share history even if they run against the same MemorySaver instance.
+if "thread_id" not in st.session_state:
+    st.session_state.thread_id = str(uuid.uuid4())
+
+if "config" not in st.session_state:
+    st.session_state.config = {"configurable": {"thread_id": st.session_state.thread_id}}
+
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
 # ==========================================
-# 2. RENDER CHAT HISTORY
+# 2. SIDEBAR — NEW CONVERSATION
+# ==========================================
+
+with st.sidebar:
+    st.markdown("### Conversation")
+    if st.button("New conversation", use_container_width=True):
+        # Assign a fresh thread_id so the checkpointer starts a new empty slot.
+        # The agent instance is reused — no recompilation needed.
+        new_thread_id = str(uuid.uuid4())
+        st.session_state.thread_id = new_thread_id
+        st.session_state.config = {"configurable": {"thread_id": new_thread_id}}
+        st.session_state.messages = []
+        st.rerun()
+
+    if st.session_state.messages:
+        st.caption(f"{len(st.session_state.messages)} message(s) in this thread")
+
+# ==========================================
+# 3. RENDER CHAT HISTORY
 # ==========================================
 
 for message in st.session_state.messages:
@@ -116,7 +140,7 @@ for message in st.session_state.messages:
         st.markdown(message["content"])
 
 # ==========================================
-# 3. USER INPUT
+# 4. USER INPUT
 # ==========================================
 
 if prompt := st.chat_input("Ask anything..."):
@@ -127,17 +151,19 @@ if prompt := st.chat_input("Ask anything..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
 
     # ==========================================
-    # 4. CALL LANGGRAPH AGENT
+    # 5. CALL LANGGRAPH AGENT
     # ==========================================
 
     final_answer = None
     with st.chat_message("assistant"):
         with st.spinner("🧠 Thinking..."):
-            formatted_messages = format_messages_for_langgraph(
-                st.session_state.messages
-            )
             try:
-                response = agent.invoke({"messages": formatted_messages})
+                # The checkpointer already holds the full conversation history for
+                # this thread; only the new user message needs to be appended.
+                response = st.session_state.agent.invoke(
+                    {"messages": [("user", prompt)]},
+                    config=st.session_state.config,
+                )
                 final_answer = _last_message_to_text(response["messages"])
                 st.markdown(final_answer)
 

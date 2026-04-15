@@ -1,5 +1,7 @@
 # Agentic Search Graph
 
+![Tests](https://github.com/DrAdrianDC/langgraph_lab/actions/workflows/test.yml/badge.svg)
+
 A high-performance ReAct agent powered by Llama 3.3 70B on Groq for low-latency inference, with persistent web search via Tavily and state orchestration through LangGraph. It includes an optimized chat UI with source traceability.
 
 ## Graph Architecture
@@ -14,6 +16,15 @@ A high-performance ReAct agent powered by Llama 3.3 70B on Groq for low-latency 
 - Controlled tool calling for Groq (only `query` exposed to Tavily).
 - Token-based history trimming to avoid TPM/request-size failures.
 - Source-traceable answers in the chat UI.
+- Per-session memory persistence via `MemorySaver` checkpointing.
+
+## Memory persistence
+
+The agent supports two runtime modes, both with conversation memory:
+
+**Streamlit / CLI** — `MemorySaver` is instantiated at startup and attached to the graph. History accumulates across turns within the same session; `trim_messages` keeps token usage bounded regardless of history length.
+
+**LangGraph Studio / `langgraph dev`** — the module-level `agent` is compiled without a checkpointer; the platform injects its own persistence layer automatically. No configuration needed.
 
 ## Requirements
 
